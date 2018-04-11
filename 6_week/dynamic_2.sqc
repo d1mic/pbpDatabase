@@ -1,0 +1,80 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+
+EXEC SQL BEGIN DECLARE SECTION;
+char stmt[255];
+
+short godina;
+char oznaka[21];
+char naziv[51];
+char pocetak_prijavljivanja[11];
+char kraj_prijavljivanja[11];
+char tip[3];
+
+EXEC SQL END DECLARE SECTION;
+
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0){
+    printf("Error: %s, error code: %d\n", str,SQLCODE);
+    EXEC SQL ROLLBACK;
+    return 1;
+  }
+  return 0;
+}
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int main(){
+  
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("connect");
+  
+  sprintf(stmt, "INSERT INTO ispitni_rok VALUES (?,?,?,?,?,?)");
+  printf("%s\n", stmt);
+  
+  
+  EXEC SQL PREPARE upit FROM :stmt;
+  CHECKERR("prepare");
+  
+  /* upis promenljivih u polja */
+  printf("Upisati godinu\n");
+  scanf("%d", &godina);
+  
+  printf("Upisati oznaku\n");
+  scanf("%s", oznaka);
+  getchar();
+  
+  printf("Upisati naziv\n");
+  fgets(naziv,51,stdin);
+  if(naziv[strlen(naziv) -1] == '\n'){
+    naziv[strlen(naziv) -1 ] = '\0';
+  }
+  
+  printf("Upisati pocetni datum\n");
+  scanf("%s", pocetak_prijavljivanja);
+  
+  printf("Upisati krajnji datum\n");
+  scanf("%s", kraj_prijavljivanja);
+  
+  printf("Upisati tip\n");
+  scanf("%s",tip);
+  
+  printf("%d %s %s %s %s %s \n",godina,oznaka,naziv,pocetak_prijavljivanja,kraj_prijavljivanja,tip);
+  
+  
+  
+  /* podaci: 
+   * 2018 mar Mart 2018  03/10/2018 03/20/2018 1  */
+  
+  EXEC SQL EXECUTE upit USING :godina, :oznaka , :naziv, :pocetak_prijavljivanja, :kraj_prijavljivanja, :tip;
+  CHECKERR("execute");
+ 
+  EXEC SQL CONNECT RESET;
+  CHECKERR("disconnect");
+  return 0;
+}

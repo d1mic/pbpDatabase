@@ -1,0 +1,62 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+
+int is_error(char *str){  
+  if(SQLCODE < 0 ){
+    printf("Error %s ,error code: %d\n",str,SQLCODE);
+    EXEC SQL ROLLBACK;
+    return 1;
+  }
+  return 0;
+}
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+EXEC SQL BEGIN DECLARE SECTION;
+
+long id_smera;
+char oznaka[11];
+char naziv[201];
+
+EXEC SQL END DECLARE SECTION;
+
+int main(){
+
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("connection");
+  
+  
+  EXEC SQL LOCK TABLE smer IN SHARE MODE;
+  CHECKERR("Lock table");
+  
+  EXEC SQL DECLARE smerKursor CURSOR FOR
+  select id_smera, oznaka,naziv
+  from smer;
+  CHECKERR("Declare cursor");
+  
+  EXEC SQL OPEN smerKursor;
+  CHECKERR("Open cursor");
+
+  
+  while(1){
+    
+    EXEC SQL FETCH smerKursor INTO :id_smera , :oznaka , :naziv;
+    
+    if(SQLCODE == 100) break;
+    
+    printf("Id smera: %ld ,oznaka: %s,naziv: %s\n", id_smera,oznaka,naziv);
+    
+    printf("Pritisnite taster za citanje\n");
+    getchar();
+    
+  }
+  
+  EXEC SQL CLOSE smerKursor;
+  CHECKERR("Close cursor");
+
+  EXEC SQL CONNECT RESET;
+  CHECKERR("Disconect");
+  return 0;
+}

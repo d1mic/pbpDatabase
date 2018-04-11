@@ -1,0 +1,33 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0){
+    printf("Error : %s, errorCode: %d \n", str, SQLCODE);
+    EXEC SQL ROLLBACK;
+    return 1;
+  }
+  return 0;
+  
+}
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int main(){
+  
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("Connect");
+  
+  EXEC SQL INSERT INTO ispitni_rok VALUES  (2016,'mar' , 'Mart 2016', current_date - 1 month , current_date - 1 month + 10 days,1);
+  CHECKERR("Insert");
+   
+  EXEC SQL CONNECT RESET;
+  CHECKERR("Reset");
+   
+  return 0;
+}

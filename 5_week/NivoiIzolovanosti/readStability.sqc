@@ -1,0 +1,67 @@
+#include <stdio.h>
+
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+EXEC SQL BEGIN DECLARE SECTION;
+  short godina;
+  char oznaka[21];
+  char naziv[51];
+EXEC SQL END DECLARE SECTION;
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0){
+    printf("Error : %s, errorCode: %d \n", str, SQLCODE);
+    EXEC SQL ROLLBACK;
+    return 1;
+  }
+  return 0;
+  
+}
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int main(){
+  int i;
+
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("Connect");
+  
+  EXEC SQL DECLARE ispitniRoKursor CURSOR FOR
+    select godina , oznaka , naziv
+    from ispitni_rok
+    where godina = 2016
+  WITH RS;
+  
+  CHECKERR("Declaration of cursor");
+ 
+  for(i = 1;i<3;i++){
+      EXEC SQL OPEN ispitniRoKursor;
+      CHECKERR("Open cursor");
+      
+      while(1){
+	
+	EXEC SQL FETCH ispitniRoKursor INTO :godina ,:oznaka, :naziv;
+	CHECKERR("Fetch cursor");
+	
+	if(SQLCODE == 100) break;
+
+	printf("%d , %s , %s \n", godina,oznaka, naziv);
+	
+	
+	/* ovde cekamo da pritisnemo taster da citamo red po red */ 
+	printf("Pritisnite taster za dalje citanje \n");
+	getchar();
+		
+      }
+      EXEC SQL CLOSE ispitniRoKursor;
+      CHECKERR("Close");
+     
+  }
+   
+  EXEC SQL CONNECT RESET;
+  CHECKERR("Reset");
+   
+  return 0;
+}
