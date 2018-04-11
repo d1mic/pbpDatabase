@@ -1,0 +1,78 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+
+EXEC SQL BEGIN DECLARE SECTION;
+long godina;
+char oznaka[21];
+char naziv[51];
+char c;
+EXEC SQL END DECLARE SECTION;
+
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0){
+    printf("Error: %s, error code: %d\n", str,SQLCODE);
+    EXEC SQL ROLLBACK;
+    return 1;
+  }
+  return 0;
+}
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int main(){
+  
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("connect");
+  
+  EXEC SQL INSERT INTO ispitni_rok values ( 2018, 'mar' , 'Mart 2018',  current_date,current_date + 20 days, 1);
+  CHECKERR("Insert prvog roka");
+  
+  EXEC SQL SAVEPOINT S1 ON ROLLBACK RETAIN CURSORS;
+  CHECKERR("Savepoint");
+  
+  EXEC SQL INSERT INTO ispitni_rok values ( 2018, 'apr' , 'April 2018', current_date + 1 month,current_date + 1 month + 20 days, 1);
+  EXEC SQL INSERT INTO ispitni_rok values ( 2018, 'maj' , 'Maj 2018',   current_date + 2 month,current_date + 2 month + 20 days, 1);
+  EXEC SQL INSERT INTO ispitni_rok values ( 2018, 'jun' , 'Jun 2018', current_date + 3 month,current_date + 3 month + 20 days, 1);
+  EXEC SQL INSERT INTO ispitni_rok values ( 2018, 'jul' , 'Jul 2018', current_date + 4 month,current_date + 4 month + 20 days, 1);
+  CHECKERR("Insert ostalih rokova - mrzi me da kopiram za sve jer mi bude bas ruzan kod");
+  
+  
+  printf("dal ipak zelite samo 1 rok (jer je ipak matf)?\n");
+  c = getchar();
+  if(c == 'd' || c == 'D'){
+    
+    EXEC SQL ROLLBACK TO SAVEPOINT S1;
+    CHECKERR("Rollback");
+    
+  }
+  
+  /* ovaj deo se izvrsi bez obzira na rollback */
+  
+  EXEC SQL DECLARE m_cursor CURSOR FOR
+  select godina, oznaka,naziv 
+  from ispitni_rok
+  where godina = 2018;
+  
+  EXEC SQL OPEN m_cursor;
+  CHECKERR("Open cursor");
+  
+  while(1){
+    
+    EXEC SQL FETCH m_cursor INTO :godina,:oznaka,:naziv;
+    
+    if(SQLCODE == 100) break;
+    
+    printf("Godina %d , oznaka %s, naziv %s\n",godina,oznaka,naziv);
+  }
+  
+  EXEC SQL CLOSE m_cursor;
+  CHECKERR("Close cursor");
+  
+  EXEC SQL CONNECT RESET;
+  CHECKERR("disconnect");
+  return 0;
+}

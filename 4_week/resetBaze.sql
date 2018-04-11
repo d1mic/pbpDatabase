@@ -1,0 +1,1 @@
+delete from ispitni_rok where godina = 2018
