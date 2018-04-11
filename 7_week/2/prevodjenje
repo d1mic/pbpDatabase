@@ -1,0 +1,13 @@
+#!/bin/sh
+
+DB2PATH=/opt/ibm/db2/V10.5
+EXTRA_LFLAG="-Wl,-rpath,$DB2PATH/lib32"
+
+./embprep $1  $4 $6 $7
+./embprep $2 $4 $6 $7
+./embprep $3 $5 $6 $7
+
+cc -I$DB2PATH/include -c $1.c $2.c $3.c
+
+cc -o $1 $1.o $2.o $3.o $EXTRA_LFLAG -L$DB2PATH/lib32 -ldb2
+

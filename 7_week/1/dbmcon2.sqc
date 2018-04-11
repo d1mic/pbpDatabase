@@ -1,0 +1,65 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sqlenv.h>
+#include <sqlutil.h>
+#include "dbmcon2.h"
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+EXEC SQL BEGIN DECLARE SECTION;
+long indeks;
+char ime[51];
+char prezime[51];
+EXEC SQL END DECLARE SECTION;
+
+int SecondDbCreateTable(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+  
+  printf("CREATE TABLE pred_stat\n");
+  EXEC SQL CREATE TABLE pred_stat(
+	  id_predmeta INTEGER not null,
+	  prosek DOUBLE
+  );
+  CHECKERR("Create table");
+
+  return 0;
+} 
+int SecondDbDropTable(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+  
+  printf("DROP TABLE pred_stat \n");
+  EXEC SQL DROP TABLE pred_stat;
+  CHECKERR("Drop table");
+
+  return 0;
+}
+
+int SecondDbListTable(void){
+ 
+  int rc = 0;
+  struct sqlca sqlca;
+
+  EXEC SQL DECLARE cursorDosije CURSOR FOR 
+  select ime,prezime,indeks from dosije;
+  CHECKERR("Declare cursor");
+
+  EXEC SQL OPEN cursorDosije;
+  CHECKERR("Open cursor");
+  
+  while(1){
+      EXEC SQL FETCH cursorDosije INTO :ime , :prezime , :indeks;
+      CHECKERR("Fetch");
+
+      if(SQLCODE == 100) break;
+      
+      printf("Ime: %s prezime : %s , indeks: %d \n", ime,prezime,indeks);
+    
+  }
+  EXEC SQL CLOSE cursorDosije;
+  CHECKERR("Close cursor");
+}

@@ -1,0 +1,123 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sqlenv.h>
+#include <sqlutil.h>
+#include "dbmcon1.h"
+#include "dbmcon2.h"
+
+EXEC SQL INCLUDE SQLCA;
+
+
+int is_error(char *str);
+int TwoDbConnectType1(void);
+int TwoDbConnectType2OnePhaseCommit(void);
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+EXEC SQL BEGIN DECLARE SECTION;
+  char dbAlias1[15];
+  char dbAlias2[15];
+  char user1[129];
+  char user2[129];
+  char pswd1[15];
+  char pswd2[15];
+EXEC SQL END DECLARE SECTION;
+
+int main(int argc, char *argv[])
+{
+  int rc = 0;
+  
+  if( argc > 1){
+    strcpy(dbAlias1, argv[1]);
+    strcpy(dbAlias2, argv[2]);
+    strcpy(user1, argv[3]);
+    strcpy(pswd1, argv[4]);
+  }
+  else{
+    sprintf( dbAlias1, "vstud");
+    sprintf( dbAlias2,"mstud");
+    sprintf( user1, "student");
+    sprintf(pswd1, "abcdef");
+  }
+  
+  if (rc != 0) return rc;
+
+  rc = TwoDbConnectType2OnePhaseCommit();
+
+  return 0;
+} 
+
+
+int TwoDbConnectType2OnePhaseCommit(void)
+{
+  
+  
+  /* Setup strukture */
+  int rc = 0;
+  struct sqlca sqlca;
+  struct sqle_conn_setting clientAppInfo[3];  
+
+  clientAppInfo[0].type = SQL_CONNECT_TYPE;
+  clientAppInfo[0].value = SQL_CONNECT_2;
+
+  clientAppInfo[1].type = SQL_DISCONNECT;
+  clientAppInfo[1].value = SQL_DISCONNECT_EXPL;
+
+  clientAppInfo[2].type = SQL_SYNCPOINT;
+  clientAppInfo[2].value = SQL_SYNC_ONEPHASE;
+
+  sqlesetc(&clientAppInfo[0], 3, &sqlca);
+  
+  /* Konekcija na obe baze */
+  EXEC SQL CONNECT TO :dbAlias1 USER :user1 USING :pswd1;
+  CHECKERR("Connection to first database");
+  EXEC SQL CONNECT TO :dbAlias2 USER :user1 USING :pswd1;
+  CHECKERR("Connection to second database");
+
+
+  /* U prvoj napravimo tabelu */
+  EXEC SQL SET CONNECTION :dbAlias1;
+  CHECKERR("Set connection to first database");
+  rc = FirstDbCreateTable();
+  EXEC SQL COMMIT;
+  CHECKERR("Commit");
+
+  /* U drugoj napravimo tabelu */
+  EXEC SQL SET CONNECTION :dbAlias2;
+  CHECKERR("Set connection to second database");
+  rc = SecondDbCreateTable();
+  EXEC SQL COMMIT;
+  CHECKERR("Commit");
+  
+  /* U prvoj obrisemo tabelu */
+  EXEC SQL SET CONNECTION :dbAlias1;
+  CHECKERR("Set connection to first database");
+  rc = FirstDbDropTable();
+  EXEC SQL COMMIT;
+  CHECKERR("Commit");
+
+  /* U drugoj obrisemo tabelu i izlistamo tabelu dosije */
+  EXEC SQL SET CONNECTION :dbAlias2;
+  CHECKERR("Set connection to second database");
+  rc = SecondDbDropTable();
+  rc = SecondDbListTable();
+  EXEC SQL COMMIT;
+  CHECKERR("Commit");
+
+  /* odjava sa obe baze */
+  EXEC SQL DISCONNECT ALL;
+
+  return 0;
+} 
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0 ){
+    EXEC SQL ROLLBACK;
+    printf("%s : %d \n" ,str, SQLCODE);
+    return 1;
+  }
+  return 0;
+  
+}

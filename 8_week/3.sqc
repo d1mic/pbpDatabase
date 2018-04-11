@@ -1,0 +1,67 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+EXEC SQL INCLUDE SQLCA;
+
+
+EXEC SQL BEGIN DECLARE SECTION;
+  char stmt[51];
+  long godina;
+  double prosek;
+  double studenti;
+  char naziv[51];
+EXEC SQL END DECLARE SECTION;
+
+int is_error(char *str){
+  
+  if(SQLCODE < 0 ){
+    EXEC SQL ROLLBACK;
+    printf("%s : %d \n", str,SQLCODE);
+    return 1;
+  }
+  
+  return 0;
+}
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int main(){
+
+  EXEC SQL CONNECT TO vstud USER student USING abcdef;
+  CHECKERR("COnnect");
+  
+  sprintf(stmt,"with pomocna as (select i.godina godina, s.naziv naziv, avg(i.ocena*1.0) pr, count(distinct(d.indeks)) br from smer s join dosije d on d.id_smera = s.id_smera join ispit i on i.indeks = d.indeks where i.godina = ? and ocena>5 and status_prijave ='o' group by s.naziv,i.godina) select p.naziv,p.pr, p.br*1.0/count(up.indeks)*100.0 from pomocna p join upis_godine up on up.godina = p.godina group by p.naziv,p.pr,p.br"
+);
+  EXEC SQL PREPARE izraz FROM :stmt;
+  CHECKERR("Prepare");
+  
+  printf("Unesite godinu: \n");
+  scanf("%d" , &godina);
+  
+  
+  EXEC SQL DECLARE cursor CURSOR FOR izraz;
+  CHECKERR("Declare");
+
+  EXEC SQL OPEN cursor USING :godina;
+  CHECKERR("Open cursor");
+
+  
+  while(1){
+
+      EXEC SQL FETCH cursor INTO :naziv, :prosek, :studenti;
+      CHECKERR("Fetch");
+
+      if(SQLCODE == 100 )break;
+      
+      printf("Naziv: %s, prosek %f, studenti procenti: %f\n" ,naziv, prosek , studenti);
+    
+  }
+ 
+  EXEC SQL CLOSE cursor;
+  CHECKERR("Close");
+
+  EXEC SQL CONNECT RESET;
+  CHECKERR("Disconnect");
+
+  return 0;
+}

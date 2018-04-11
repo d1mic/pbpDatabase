@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sqlenv.h>
+#include <sqlutil.h>
+#include "dbmcon1.h"
+
+EXEC SQL BEGIN DECLARE SECTION;
+  char naziv[51];
+  long id_predmeta;
+EXEC SQL END DECLARE SECTION;
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int FirstDbUpdateBodovi(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+  
+  printf("UPDATE BODOVI \n");
+
+  EXEC SQL UPDATE predmet 
+	   SET bodovi = bodovi+ 5
+	   WHERE id_predmeta in (select op.id_predmeta from obavezan_predmet op where id_smera = 201);
+  CHECKERR("Update");
+  return 0;
+}
+
+int FirstDbList(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+
+  EXEC SQL DECLARE cursor CURSOR FOR
+  select naziv, p.id_predmeta 
+  from predmet p join obavezan_predmet op on p.id_predmeta = op.id_predmeta
+  where id_smera = 201;
+  CHECKERR("Declare cursor");
+  
+  
+  EXEC SQL OPEN cursor;
+  CHECKERR("Open cursor");
+  
+  while(1){
+    
+    EXEC SQL FETCH cursor INTO :naziv , :id_predmeta;
+    CHECKERR("Fetch cursor");
+    
+    if(SQLCODE == 100) break;
+    
+    printf("%s %d\n" , naziv, id_predmeta);
+  }
+  
+  EXEC SQL CLOSE cursor;
+  CHECKERR("CLose cursor");
+
+  return 0;
+}
+

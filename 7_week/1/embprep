@@ -1,0 +1,8 @@
+
+db2 connect to $2 user $3 using $4
+
+db2 prep $1.sqc bindfile
+
+db2 bind $1.bnd 
+db2 connect reset 
+

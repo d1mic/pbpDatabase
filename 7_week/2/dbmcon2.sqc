@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sqlenv.h>
+#include <sqlutil.h>
+#include "dbmcon2.h"
+
+EXEC SQL BEGIN DECLARE SECTION;
+  char ime[51];
+  char prezime[51];
+EXEC SQL END DECLARE SECTION;
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int SecondDbInsert(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+  
+  printf("INSERT DOSIJE\n");
+
+  EXEC SQL INSERT INTO dosije VALUES (20130001, 'Stefan','Lazovic',null,null,null);
+  CHECKERR("Insert");
+
+  return 0;
+} 
+
+int SecondDbList(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+
+  EXEC SQL DECLARE m_cursor CURSOR FOR 
+  select ime, prezime from dosije;
+  CHECKERR("Declare cursor");
+
+  
+  EXEC SQL OPEN m_cursor;
+  CHECKERR("Open cursor");
+
+  printf("-----------------------------------------------\n");
+  while(1){
+    
+    EXEC SQL FETCH m_cursor INTO :ime , :prezime;
+    CHECKERR("Fetch cursor");
+
+    
+    if(SQLCODE == 100) break;
+    
+     printf("%s %s\n" , ime, prezime);
+  }
+  
+  EXEC SQL CLOSE m_cursor;
+  CHECKERR("CLose cursor");
+
+  
+  return 0;
+} 
+

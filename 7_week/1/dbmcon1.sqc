@@ -1,0 +1,37 @@
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sqlenv.h>
+#include <sqlutil.h>
+#include "dbmcon1.h"
+
+#define CHECKERR(str) if(is_error(str)) exit(1);
+
+int FirstDbCreateTable(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+
+  printf("CREATE TABLE irok_stat\n");
+  EXEC SQL CREATE TABLE irok_stat(
+			  godina_roka SMALLINT,
+			  oznaka_roka VARCHAR(21),
+			  prolaznost  DOUBLE);
+  CHECKERR("Create table");
+
+  return 0;
+} 
+
+int FirstDbDropTable(void)
+{
+  int rc = 0;
+  struct sqlca sqlca;
+  
+  printf("DROP TABLE irok_stat\n");
+  EXEC SQL DROP TABLE irok_stat;
+  CHECKERR("Drop table");
+
+  return 0;
+} 
+
